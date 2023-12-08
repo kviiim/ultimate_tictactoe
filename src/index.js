@@ -19,6 +19,7 @@ class Board extends React.Component {
       squares: Array(9).fill(null),
       handleClickFun: props.clickFunc,
       handleWinFun: props.winFunc,
+      handleFullFun: props.fullFunc,
       activeColor: props.active,
     }
   }
@@ -36,8 +37,12 @@ class Board extends React.Component {
 
       const winner = calculateWinner(squares);
       if (winner != null){
-        console.log(this.state.value)
         this.state.handleWinFun(this.state.value, winner);
+      }
+
+      const full = checkBoardFull(squares);
+      if (full){
+        this.state.handleFullFun(this.state.value);
       }
 
       this.setState({
@@ -85,6 +90,7 @@ class Game extends React.Component {
     super(props);
     this.state = {
       boards: Array(9).fill(null),
+      full_boards: Array(9).fill(null),
       xIsNext: true,
       winner: null,
       activeBoard: null,
@@ -97,6 +103,7 @@ class Game extends React.Component {
       value={i} 
       winFunc={this.handleWinner.bind(this)}
       clickFunc={this.handleClick.bind(this)}
+      fullFunc={this.handleBoardFull.bind(this)}
       active={this.state.activeBoard === i}
     />;
   }
@@ -107,19 +114,27 @@ class Game extends React.Component {
       this.setState({
         boards: boards,
       });
-      console.log(boards)
       if (calculateWinner(boards)){
           this.setState({status: "GAME WON BY " + calculateWinner(boards)})
       }
+  }
+
+  handleBoardFull(i) {
+    const full_boards = this.state.full_boards.slice();
+    full_boards[i] = true;
+    this.setState({
+      full_boards: full_boards,
+    });
   }
 
   handleClick(boardi, i) {
     let result;
     if (this.state.activeBoard === null || this.state.activeBoard === boardi){
       result = this.state.xIsNext ? 'X' : 'O';
+      let active = this.state.full_boards[i] ? null : i;
       this.setState({
         xIsNext: !this.state.xIsNext,
-        activeBoard: i
+        activeBoard: active,
       })
     }
     return result;
@@ -172,6 +187,15 @@ function calculateWinner(squares) {
     }
   }
   return null;
+}
+
+function checkBoardFull(squares){
+  for (let i=0; i < squares.length; i++){
+    if (squares[i] !== 'X' && squares[i] !== 'O'){
+      return false;
+    }
+  }
+  return true;
 }
 
 function getColor(value, winner) {
