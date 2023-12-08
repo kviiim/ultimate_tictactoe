@@ -2,92 +2,157 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 
+
 function Square(props) {
   return (
-    <button className="square" onClick={props.onClick}>
+    <button className="square" onClick={props.onClick} style={{ background: props.color, color: props.textColor}}>
       {props.value}
     </button>
   );
 }
-  
-class Board extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = {
-        squares: Array(9).fill(null),
-        xIsNext: true,
-      }
-    }
 
-    handleClick(i) {
-      const squares = this.state.squares.slice();
-      squares[i] = this.state.xIsNext ? 'X' : 'O';
+class Board extends React.Component {
+  constructor(props){
+    super(props);
+    this.state = {
+      value: props.value,
+      squares: Array(9).fill(null),
+      handleClickFun: props.clickFunc,
+      handleWinFun: props.winFunc,
+      activeColor: props.active,
+    }
+  }
+
+  componentWillReceiveProps(props) {
+    this.setState({ activeColor: (props.active ? "#99ecf7" : "#FFFFFF") })
+  }
+
+  handleClick(i) {
+    let result;
+    const squares = this.state.squares.slice();
+    if (!squares[i]){
+      result = this.state.handleClickFun(this.state.value, i);
+      squares[i] = result;    
+
+      const winner = calculateWinner(squares);
+      if (winner != null){
+        console.log(this.state.value)
+        this.state.handleWinFun(this.state.value, winner);
+      }
+
       this.setState({
         squares: squares,
-        xIsNext: !this.state.xIsNext,
       });
     }
+  }
 
-    renderSquare(i) {
-      return <Square 
-        value={this.state.squares[i]} 
-        onClick={() => this.handleClick(i)}
-      />;
+  renderSquare(i, winner) {
+    return <Square 
+      value={this.state.squares[i]} 
+      color ={getColor(this.state.squares[i], winner)}
+      textColor = {getTextColor(this.state.squares[i])}
+      onClick={() => this.handleClick(i)}
+    />;
+  }
+
+  render() {
+    const winner = calculateWinner(this.state.squares);
+
+    return (
+      <div className="board" style={{ background:this.state.activeColor }}>
+        <div className="squares-row">
+          {this.renderSquare(0, winner)}
+          {this.renderSquare(1, winner)}
+          {this.renderSquare(2, winner)}
+        </div>
+        <div className="squares-row">
+          {this.renderSquare(3, winner)}
+          {this.renderSquare(4, winner)}
+          {this.renderSquare(5, winner)}
+        </div>
+        <div className="squares-row">
+          {this.renderSquare(6, winner)}
+          {this.renderSquare(7, winner)}
+          {this.renderSquare(8, winner)}
+        </div>
+      </div>
+    );
+  }
+}
+
+class Game extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      boards: Array(9).fill(null),
+      xIsNext: true,
+      winner: null,
+      activeBoard: null,
+      status: null,
     }
-  
-    
-    render() {
-      const winner = calculateWinner(this.state.squares);
-      let status;
-      if (winner) {
-        status = 'Winner: ' + winner + '!';
-      } else {
-        status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+  }
+
+  renderBoard(i) {
+    return <Board 
+      value={i} 
+      winFunc={this.handleWinner.bind(this)}
+      clickFunc={this.handleClick.bind(this)}
+      active={this.state.activeBoard === i}
+    />;
+  }
+
+  handleWinner(i, winner) {
+      const boards = this.state.boards.slice();
+      boards[i] = winner;
+      this.setState({
+        boards: boards,
+      });
+      console.log(boards)
+      if (calculateWinner(boards)){
+          this.setState({status: "GAME WON BY " + calculateWinner(boards)})
       }
-  
-      return (
-        <div>
-          <div className="status">{status}</div>
-          <div className="board-row">
-            {this.renderSquare(0)}
-            {this.renderSquare(1)}
-            {this.renderSquare(2)}
-          </div>
-          <div className="board-row">
-            {this.renderSquare(3)}
-            {this.renderSquare(4)}
-            {this.renderSquare(5)}
-          </div>
-          <div className="board-row">
-            {this.renderSquare(6)}
-            {this.renderSquare(7)}
-            {this.renderSquare(8)}
-          </div>
-        </div>
-      );
-    }
-  }
-  
-  class Game extends React.Component {
-    render() {
-      return (
-        <div className="game">
-          <div className="game-board">
-            <Board />
-          </div>
-          <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
-          </div>
-        </div>
-      );
-    }
   }
 
-  // ========================================
-  
-  const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(<Game />);
+  handleClick(boardi, i) {
+    let result;
+    if (this.state.activeBoard === null || this.state.activeBoard === boardi){
+      result = this.state.xIsNext ? 'X' : 'O';
+      this.setState({
+        xIsNext: !this.state.xIsNext,
+        activeBoard: i
+      })
+    }
+    return result;
+  }
+
+  render() {
+    return (
+      <div className="game">
+        <div className="status">  {this.state.status ? ("Winner: " + this.state.status + "!") : ("Player: " + (this.state.xIsNext ? 'X' : 'O'))}</div>
+        <div className='board-row'>
+          {this.renderBoard(0)}
+          {this.renderBoard(1)}
+          {this.renderBoard(2)}
+        </div>
+        <div className='board-row'>
+          {this.renderBoard(3)}
+          {this.renderBoard(4)}
+          {this.renderBoard(5)}
+        </div>        
+        <div className='board-row'>
+          {this.renderBoard(6)}
+          {this.renderBoard(7)}
+          {this.renderBoard(8)}
+        </div>
+      </div>
+    );
+  }
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<Game />);
+
 
 function calculateWinner(squares) {
   const lines = [
@@ -107,4 +172,28 @@ function calculateWinner(squares) {
     }
   }
   return null;
+}
+
+function getColor(value, winner) {
+  if ( winner === 'X'){
+    return '#ffadff';
+  }
+  else if (winner === 'O'){
+    return '#d6adff';
+  }
+  else {
+    return '#ffffff';
+  }
+}
+
+function getTextColor(value) {
+  if (value === 'X'){
+    return '#b821b8';
+  }
+  else if (value === 'O'){
+    return '#722bba';
+  }
+  else {
+    return '#ffffff';
+  }
 }
